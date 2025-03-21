@@ -10,7 +10,7 @@ public static class CommandHandler
         switch (command.Data.Name)
         {
             case "wipe-memory":
-                // Program.ChannelMemory.Remove(command.Channel.Id);
+                Program.AI.GetChat(command.Channel.Id).Messages.Clear();
                 await command.RespondAsync("Wiped AI memory for this channel.");
                 return;
             case "coin-flip":

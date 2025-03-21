@@ -8,19 +8,20 @@ namespace IdiotBot
     public class AIHandler
     {
         private readonly string instructionsPath = @"Data\instructions.txt";
+        private readonly string model = "qwen2.5:0.5b"; // if reasoning quality suffers, switch back to llama3.2
 
         private OllamaApiClient client;
         private Dictionary<ulong, Chat> chats = new();
 
         public AIHandler()
         {
-            client = new OllamaApiClient("http://localhost:11434", "llama3.2");
+            client = new OllamaApiClient("http://localhost:11434", model);
 
             client.CreateModelAsync(new OllamaSharp.Models.CreateModelRequest()
             {
                 Model = "idiot-bot",
 
-                From = "llama3.2",
+                From = model,
                 System = File.ReadAllText(instructionsPath)
             });
 
@@ -38,7 +39,7 @@ namespace IdiotBot
             return response;
         }
 
-        private Chat GetChat(ulong channelId)
+        public Chat GetChat(ulong channelId)
         {
             if (chats.ContainsKey(channelId))
                 return chats.GetValueOrDefault(channelId);
