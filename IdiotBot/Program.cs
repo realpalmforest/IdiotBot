@@ -26,6 +26,7 @@ public class Program
         Client = new DiscordSocketClient(config);
         Client.Log += Log;
 
+        // This token file will not be present in the commited version
         var token = File.ReadAllText(@"Data\token.txt");
         //var token = JsonConvert.DeserializeObject<AConfigurationClass>(File.ReadAllText("config.json")).Token;
 
