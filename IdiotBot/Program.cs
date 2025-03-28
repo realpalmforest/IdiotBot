@@ -60,6 +60,8 @@ public class Program
         ];
 
         await Client.BulkOverwriteGlobalApplicationCommandsAsync(commands);
+
+        Print("User: " + Client.CurrentUser.Mention);
     }
 
 
