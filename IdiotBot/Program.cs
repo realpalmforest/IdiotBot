@@ -2,6 +2,8 @@
 using Discord.WebSocket;
 using System;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace IdiotBot;
@@ -62,15 +64,21 @@ public class Program
 
         await Client.BulkOverwriteGlobalApplicationCommandsAsync(commands);
 
-        Print("User: " + Client.CurrentUser.Mention);
+        Print("Bot User: " + Client.CurrentUser.Mention);
+
+        StringBuilder builder = new StringBuilder("Active Servers: ");
+        foreach (var guild in Client.Guilds)
+            builder.Append(guild.Name + (Client.Guilds.Last() == guild ? "" : ", "));
+        Print(builder.ToString());
     }
 
 
 
     private static async Task MessageReceived(SocketMessage message)
     {
-        string messageFormatted = $"{(message.Author.GlobalName is null ? message.Author.Username : message.Author.GlobalName)}:\t{message.Content}";
-        Print($"[{message.Channel.Name}]  " + messageFormatted);
+        // Uncomment this to log all messages received
+        // string messageFormatted = $"{(message.Author.GlobalName is null ? message.Author.Username : message.Author.GlobalName)}:\t{message.Content}";
+        // Print($"[{message.Channel.Name}]  " + messageFormatted);
 
         // A discarded task is created due to discord throwing an exception if a handler takes too long to respond
         _ = Task.Run(() => HandleMessage(message));
