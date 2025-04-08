@@ -1,42 +1,48 @@
 ﻿using OllamaSharp;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace IdiotBot.Handlers
 {
     public class AIHandler
     {
-        private readonly string instructionsPath = @$"{Program.ResourcesPath}\instructions.txt";
-        private readonly string model = "qwen2.5:0.5b"; // if reasoning quality suffers, switch back to llama3.2
+        private readonly string instructionsPath;
+        private readonly string model;
+        private readonly float temperature;
+        private readonly int maxTokens;
 
         private OllamaApiClient client;
         private Dictionary<ulong, Chat> chats = new();
 
         public AIHandler()
         {
-            client = new OllamaApiClient("http://localhost:11434", model);
+            instructionsPath = @$"{Program.Config.ResourcesConfig.ResourcesPath}\{Program.Config.AIConfig.InstructionsPath}";
+            model = Program.Config.AIConfig.Model;
+            temperature = Program.Config.AIConfig.Temperature;
+            maxTokens = Program.Config.AIConfig.MaxTokens;
 
-            client.CreateModelAsync(new OllamaSharp.Models.CreateModelRequest()
-            {
-                Model = "idiot-bot",
+            client = new OllamaApiClient("http://localhost:11434");
 
-                From = model,
-                System = File.ReadAllText(instructionsPath)
-            });
+            // client.CreateModelAsync(new OllamaSharp.Models.CreateModelRequest()
+            //{
+            //    Model = "idiot-bot12",
+            //    From = model,
+            //    System = File.ReadAllText(instructionsPath)
+            //});
 
-            client.SelectedModel = "idiot-bot";
+            client.SelectedModel = model;
         }
 
 
-        public async Task<string> GetResponse(string prompt, ulong channelId)
+        public async Task<string> GetResponse(string prompt, ulong chatId, string authorName)
         {
-            string response = string.Empty;
-            await foreach (var stream in GetChat(channelId).SendAsync(prompt))
-                response += stream;
+            StringBuilder response = new StringBuilder();
+            await foreach (var stream in GetChat(chatId).SendAsync($"[{authorName}]: {prompt}"))
+                response.Append(stream);
 
-
-            return response;
+            return response.ToString();
         }
 
         public Chat GetChat(ulong channelId)
@@ -45,8 +51,12 @@ namespace IdiotBot.Handlers
                 return chats.GetValueOrDefault(channelId);
             else
             {
-                Chat chat = new Chat(client);
-                chat.Options = new() { NumPredict = 2000 };
+                Chat chat = new Chat(client, File.ReadAllText(instructionsPath));
+                chat.Options = new()
+                {
+                    NumPredict = maxTokens,
+                    Temperature = temperature
+                };
 
                 chats.Add(channelId, chat);
                 return chat;

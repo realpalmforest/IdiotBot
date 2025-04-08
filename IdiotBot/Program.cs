@@ -2,7 +2,6 @@
 using Discord.WebSocket;
 using IdiotBot.Handlers;
 using System;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,33 +18,30 @@ public class Program
     public static CommandHandler Commands;
     public static WordleHandler Wordle;
 
-    public static readonly string ResourcesPath = "Resources";
-
-    private static DiscordSocketConfig config = new DiscordSocketConfig
-    {
-        GatewayIntents =
-            GatewayIntents.Guilds |
-            GatewayIntents.GuildMessages |
-            GatewayIntents.MessageContent
-    };
+    public static Config Config;
+    public static string ResourcesPath => Config.ResourcesConfig.ResourcesPath;
 
     public static async Task Main()
     {
-        Client = new DiscordSocketClient(config);
+        Config = Config.Load("config.json");
+
+        Client = new DiscordSocketClient(new DiscordSocketConfig
+        {
+            GatewayIntents =
+                GatewayIntents.Guilds |
+                GatewayIntents.GuildMessages |
+                GatewayIntents.MessageContent
+        });
         Client.Log += Log;
 
         AI = new AIHandler();
         Commands = new CommandHandler();
         Wordle = new WordleHandler();
 
-        // This token file will not be present in the commited version
-        var token = File.ReadAllText(@$"{ResourcesPath}\token.txt");
-        //var token = JsonConvert.DeserializeObject<AConfigurationClass>(File.ReadAllText("config.json")).Token;
-
 
         Client.Ready += ClientReady;
 
-        await Client.LoginAsync(TokenType.Bot, token);
+        await Client.LoginAsync(TokenType.Bot, Config.DiscordConfig.Token);
         await Client.StartAsync();
 
         Client.MessageReceived += MessageReceived;
@@ -100,17 +96,17 @@ public class Program
         // string messageFormatted = $"{(message.Author.GlobalName is null ? message.Author.Username : message.Author.GlobalName)}:\t{message.Content}";
         // Print($"[{message.Channel.Name}]  " + messageFormatted);
 
+        if (Wordle.TryGuess(message))
+            return;
+
         // A discarded task is created due to discord throwing an exception if a handler takes too long to respond
-        _ = Task.Run(() => HandleMessage(message));
+        _ = Task.Run(() => TryGetAIResponse(message));
     }
 
 
 
-    private static async Task HandleMessage(SocketMessage message)
+    private static async Task TryGetAIResponse(SocketMessage message)
     {
-        if (Wordle.TryGuess(message))
-            return;
-
         // Check if the message is replying to the bot
         bool isReplyToBot = false;
         if (message.Reference is not null)
@@ -131,7 +127,9 @@ public class Program
         foreach (var user in message.MentionedUsers)
             formattedMessage = formattedMessage.Replace(user.Mention, user.GlobalName is null ? user.Username : user.GlobalName);
 
-        await message.Channel.SendMessageAsync(await AI.GetResponse(formattedMessage, message.Channel.Id), messageReference: new MessageReference(message.Id));
+        string author = message.Author.GlobalName == null ? message.Author.Username : message.Author.GlobalName;
+
+        await message.Channel.SendMessageAsync(await AI.GetResponse(formattedMessage, message.Channel.Id, author), messageReference: new MessageReference(message.Id));
     }
 
 

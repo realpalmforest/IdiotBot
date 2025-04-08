@@ -1,0 +1,14 @@
+{
+  "discord": {
+    "token": "BOT TOKEN HERE"
+  },
+  "ai": {
+    "model": "llama3.2",
+    "instructions-path": "instructions.txt",
+    "temperature": 0.7,
+    "max-tokens": 2000
+  },
+  "resources": {
+    "resources-path": "Resources"
+  }
+}

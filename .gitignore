@@ -1,4 +1,4 @@
 .vs
 IdiotBot/bin
 IdiotBot/obj
-IdiotBot/Resources/token.txt
+IdiotBot/config.json
