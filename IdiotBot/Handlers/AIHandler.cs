@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace IdiotBot
+namespace IdiotBot.Handlers
 {
     public class AIHandler
     {
-        private readonly string instructionsPath = @"Data\instructions.txt";
+        private readonly string instructionsPath = @$"{Program.ResourcesPath}\instructions.txt";
         private readonly string model = "qwen2.5:0.5b"; // if reasoning quality suffers, switch back to llama3.2
 
         private OllamaApiClient client;

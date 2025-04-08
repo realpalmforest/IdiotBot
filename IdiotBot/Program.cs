@@ -5,15 +5,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using IdiotBot.Handlers;
 
 namespace IdiotBot;
 
 public class Program
 {
     public static DiscordSocketClient Client;
-    public static AIHandler AI = new AIHandler();
+    
     public static Random Random = new Random();
 
+    public static AIHandler AI = new AIHandler();
+    public static CommandHandler Commands = new CommandHandler();
+    public static WordleHandler Wordle = new WordleHandler();
+
+    public static readonly string ResourcesPath = "Resources";
 
     private static DiscordSocketConfig config = new DiscordSocketConfig
     {
@@ -29,7 +35,7 @@ public class Program
         Client.Log += Log;
 
         // This token file will not be present in the commited version
-        var token = File.ReadAllText(@"Data\token.txt");
+        var token = File.ReadAllText(@$"{ResourcesPath}\token.txt");
         //var token = JsonConvert.DeserializeObject<AConfigurationClass>(File.ReadAllText("config.json")).Token;
 
 
@@ -39,7 +45,7 @@ public class Program
         await Client.StartAsync();
 
         Client.MessageReceived += MessageReceived;
-        Client.SlashCommandExecuted += CommandHandler.SlashCommandHandler;
+        Client.SlashCommandExecuted += Commands.HandleSlashCommand;
 
         // Block this task until the program is closed.
         await Task.Delay(-1);
@@ -59,6 +65,16 @@ public class Program
             new SlashCommandBuilder()
                 .WithName("coin-flip")
                 .WithDescription("Flips a coin")
+                .Build(),
+
+            new SlashCommandBuilder()
+                .WithName("wordle")
+                .WithDescription("Starts a new Wordle game in this channel")
+                .Build(),
+
+            new SlashCommandBuilder()
+                .WithName("wordle-end")
+                .WithDescription("Ends the current Wordle game in this channel if there is one")
                 .Build()
         ];
 

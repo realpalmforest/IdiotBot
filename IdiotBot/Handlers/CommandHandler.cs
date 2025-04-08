@@ -1,11 +1,11 @@
 ﻿using Discord.WebSocket;
 using System.Threading.Tasks;
 
-namespace IdiotBot;
+namespace IdiotBot.Handlers;
 
-public static class CommandHandler
+public class CommandHandler
 {
-    public static async Task SlashCommandHandler(SocketSlashCommand command)
+    public async Task HandleSlashCommand(SocketSlashCommand command)
     {
         switch (command.Data.Name)
         {
@@ -22,6 +22,12 @@ public static class CommandHandler
 
                 await command.RespondAsync(response);
                 return;
+            case "wordle":
+                await command.RespondAsync(embed: Program.Wordle.NewGame(command.Channel.Id));
+                return;
+            case "wordle-end":
+                await command.RespondAsync(embed: Program.Wordle.EndGame(command.Channel.Id, null)); 
+                return;      
         }
     }
 }
