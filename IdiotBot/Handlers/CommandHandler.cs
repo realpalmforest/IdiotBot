@@ -23,11 +23,11 @@ public class CommandHandler
                 await command.RespondAsync(response);
                 return;
             case "wordle":
-                await command.RespondAsync(embed: Program.Wordle.NewGame(command.Channel.Id));
+                await command.RespondAsync(embed: Program.Wordle.StartGame(command.User, command.Channel.Id));
                 return;
             case "wordle-end":
-                await command.RespondAsync(embed: Program.Wordle.EndGame(command.Channel.Id, null)); 
-                return;      
+                await command.RespondAsync(embed: Program.Wordle.StopGame(command.Channel.Id, command.User));
+                return;
         }
     }
 }

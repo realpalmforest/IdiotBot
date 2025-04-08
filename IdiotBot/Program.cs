@@ -1,23 +1,23 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using IdiotBot.Handlers;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using IdiotBot.Handlers;
 
 namespace IdiotBot;
 
 public class Program
 {
     public static DiscordSocketClient Client;
-    
+
     public static Random Random = new Random();
 
-    public static AIHandler AI = new AIHandler();
-    public static CommandHandler Commands = new CommandHandler();
-    public static WordleHandler Wordle = new WordleHandler();
+    public static AIHandler AI;
+    public static CommandHandler Commands;
+    public static WordleHandler Wordle;
 
     public static readonly string ResourcesPath = "Resources";
 
@@ -33,6 +33,10 @@ public class Program
     {
         Client = new DiscordSocketClient(config);
         Client.Log += Log;
+
+        AI = new AIHandler();
+        Commands = new CommandHandler();
+        Wordle = new WordleHandler();
 
         // This token file will not be present in the commited version
         var token = File.ReadAllText(@$"{ResourcesPath}\token.txt");
@@ -104,6 +108,9 @@ public class Program
 
     private static async Task HandleMessage(SocketMessage message)
     {
+        if (Wordle.TryGuess(message))
+            return;
+
         // Check if the message is replying to the bot
         bool isReplyToBot = false;
         if (message.Reference is not null)

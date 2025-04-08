@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Formats.Asn1;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace IdiotBot.Handlers;
 
@@ -21,7 +18,7 @@ public class WordleHandler
     public string[] WordleAnswers;
     public string[] AllWords;
 
-    private Dictionary<ulong, WordleGame> games = new();
+    public Dictionary<ulong, WordleGame> Games = new();
 
     public WordleHandler()
     {
@@ -30,71 +27,81 @@ public class WordleHandler
         AllWords = File.ReadAllLines(allWordsPath);
     }
 
-    public Embed NewGame(ulong channelId)
+    public Embed StartGame(SocketUser startUser, ulong channelId)
     {
-        if(games.ContainsKey(channelId))
+        // If there is already a wordle game running
+        if (Games.ContainsKey(channelId))
         {
             return new EmbedBuilder()
                 .WithTitle("Wordle")
+                .WithDescription("There is already a Wordle game going on in this channel.")
                 .WithColor(Color.Red)
-                .WithFields([
-                    new EmbedFieldBuilder().WithValue("——————————————"),
-                    new EmbedFieldBuilder().WithValue("There is already a Wordle game going on in this channel."),
-                    new EmbedFieldBuilder().WithValue("Type a 5 letter word in this channel to guess!")
-                ])
+                .WithFields([new EmbedFieldBuilder().WithName("——————————————").WithValue("Type a 5 letter word to guess!")])
                 .WithFooter("To end the current game use the /wordle-end command.")
                 .Build();
         }
 
-        games.Add(channelId, new WordleGame(this, channelId));
+        Games.Add(channelId, new WordleGame(this, channelId));
 
         return new EmbedBuilder()
             .WithTitle("Wordle")
-            .WithFooter("Use the /wordle-end command to end the game.")
+            .WithDescription("Started new Wordle game in this channel.")
+            .WithFooter("\nUse the /wordle-end command to end the game.")
+            .WithAuthor(startUser)
             .WithColor(Color.Green)
-            .WithAuthor(Program.Client.CurrentUser)
-            .WithFields([
-                new EmbedFieldBuilder().WithValue("——————————————"),
-                new EmbedFieldBuilder().WithValue("Started new Wordle game in this channel."),
-                new EmbedFieldBuilder().WithValue("Type a 5 letter word in this channel to guess!")
-            ])
+            .WithFields([new EmbedFieldBuilder().WithName("——————————————").WithValue("Type a 5 letter word to guess!")])
             .Build();
     }
 
-    public Embed EndGame(ulong channelId, SocketUser winner)
+    public Embed StopGame(ulong channelId, SocketUser endUser)
     {
         Embed embed;
 
-        if(games.ContainsKey(channelId))
+        // If there is a game to end
+        if (Games.ContainsKey(channelId))
         {
             embed = new EmbedBuilder()
             .WithTitle("Wordle")
-            .WithDescription(winner == null ? "The game has ended." : $"{winner.Mention} guessed the word!")
+            .WithDescription("The game has ended.")
             .WithFooter("Use the /wordle command to start a new game.")
-            .WithAuthor(winner == null ? Program.Client.CurrentUser : winner)
-            .WithColor(Color.DarkRed)
-            .WithFields([
-                new EmbedFieldBuilder().WithValue("——————————————"),
-                    new EmbedFieldBuilder().WithValue($"The word was {games.GetValueOrDefault(channelId).Answer}!")
-            ])
+            .WithAuthor(endUser)
+            .WithColor(Color.DarkTeal)
+            .WithFields([new EmbedFieldBuilder().WithName("——————————————").WithValue($"The word was **{Games.GetValueOrDefault(channelId).Answer}**!")])
             .Build();
 
-            games.Remove(channelId);
+            Games.Remove(channelId);
         }
+        // If there is no game to end
         else
         {
             embed = new EmbedBuilder()
             .WithTitle("Wordle")
             .WithDescription("There is no active Wordle game in this channel.")
             .WithColor(Color.DarkGrey)
-            .WithFields([
-                new EmbedFieldBuilder().WithValue("——————————————"),
-                new EmbedFieldBuilder().WithValue("Use the /wordle command to start a game.")
-            ])
+            .WithFooter("Use the /wordle command to start a game.")
             .Build();
         }
-            
+
         return embed;
+    }
+
+    /// <summary>Returns true if the guess was successful</summary>
+    public bool TryGuess(SocketMessage message)
+    {
+        if (!Games.ContainsKey(message.Channel.Id))
+            return false;
+
+        if (message.Author.IsBot)
+            return false;
+
+        if (message.Content.ToLower().Length != 5)
+            return false;
+
+        if (!ValidWordleWords.Contains(message.Content.ToLower()))
+            return false;
+
+        Games.GetValueOrDefault(message.Channel.Id).Guess(message);
+        return true;
     }
 
     public SocketTextChannel GetTextChannel(ulong channelId)
@@ -113,15 +120,14 @@ public class WordleHandler
 public class WordleGame
 {
     public readonly string Answer;
-
-    private short guessCount = 0;
+    public short GuessCount = 0;
 
     private WordleHandler handler;
     private ulong id;
 
     private static readonly string greenChar = ":green_square:";
     private static readonly string yellowChar = ":yellow_square:";
-    private static readonly string blackChar = ":large_black_square:";
+    private static readonly string blackChar = ":black_large_square:";
 
     public WordleGame(WordleHandler handler, ulong id)
     {
@@ -130,9 +136,11 @@ public class WordleGame
         Answer = handler.WordleAnswers[Program.Random.Next(handler.WordleAnswers.Length)].ToLower();
     }
 
-    public void Guess(SocketUser author, string guess)
+    public async void Guess(SocketMessage message)
     {
-        guessCount++;
+        string guess = message.Content.ToLower();
+
+        GuessCount++;
 
         if (guess.Length != 5)
             throw new ArgumentException("Guess must be 5 letters long");
@@ -171,23 +179,34 @@ public class WordleGame
         }
 
 
-        bool isGray = result.Count(emoji => emoji == blackChar) > 3;
-        bool isGreen = guess == Answer;
-        Color color = isGreen ? Color.Green : (isGray ? Color.DarkGrey : Color.Gold);
+        bool isGameOver = guess == Answer;
+        bool isMostlyWrong = result.Count(emoji => emoji == blackChar) > 2;
+        Color color = isGameOver ? Color.Green : (isMostlyWrong ? Color.DarkGrey : Color.Gold);
 
-        handler.GetTextChannel(id).SendMessageAsync(
+        await message.Channel.SendMessageAsync(
             embed: new EmbedBuilder()
-                .WithTitle("Guess #" + guessCount)
+                .WithTitle("Guess #" + GuessCount)
                 .WithColor(color)
-                .WithAuthor(author)
-                .WithFields([
-                    new EmbedFieldBuilder().WithValue("——————————————"),
-                    new EmbedFieldBuilder().WithValue($"{GetStringAsEmojis(guess)}\n{string.Join("", result)}")
-                ])
-                .Build()
+                .WithAuthor(message.Author)
+                .WithFields([new EmbedFieldBuilder().WithName("——————————————").WithValue($"{GetStringAsEmojis(guess)}\n{string.Join("", result)}")])
+                .Build(),
+            messageReference: new MessageReference(message.Id)
             );
 
-        handler.EndGame(id, author);
+        // If this guess is correct end the game send embed and end game
+        if (isGameOver)
+        {
+            await message.Channel.SendMessageAsync(embed: new EmbedBuilder()
+            .WithTitle("Wordle")
+            .WithDescription($"{message.Author.Mention} guessed the word in {GuessCount}!")
+            .WithFooter("Use the /wordle command to start a new game.")
+            .WithAuthor(message.Author)
+            .WithColor(Color.Teal)
+            .WithFields([new EmbedFieldBuilder().WithName("——————————————").WithValue($"The word was **{Answer}**!")])
+            .Build());
+
+            handler.Games.Remove(id);
+        }
     }
 
 
