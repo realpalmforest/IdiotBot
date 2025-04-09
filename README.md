@@ -13,15 +13,16 @@
   
   Wordle recreation directly inside of Discord, which is capable of running an independent session in each channel.
 
-- **Slash Commands**
+- **GD Demon List**
   
-  Miscellaneous slash commands for controlling Wordle games, flipping a coin, and wiping the AI memory in a channel.
+  Cycle through the Geometry Dash demon list which is fetched from the [PointerCrate Rest API](https://pointercrate.com/documentation/index).
 
 ## ⚙ Tools
 - [Discord Developer Portal](https://discord.com/developers/applications) - Discord application
 - [Discord.NET](https://github.com/discord-net/Discord.Net) - Discord Bot functionality.
 - [Ollama](https://github.com/ollama/ollama) - Software for hosting AI models locally.
 - [OllamaSharp](https://github.com/awaescher/OllamaSharp) - For making Ollama API requests.
+- [PointerCrate Rest API](https://pointercrate.com/documentation/index) - Geometry Dash demon list
 
 ## 🚀 Running the Bot
 
