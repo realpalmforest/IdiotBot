@@ -26,6 +26,11 @@ public static class Program
     {
         Config = Config.Load("config.json");
 
+        AI = new AIHandler();
+        Commands = new CommandHandler();
+        Wordle = new WordleHandler();
+        PointerCrate = new PointerCrateHandler();
+
         Client = new DiscordSocketClient(new DiscordSocketConfig
         {
             GatewayIntents =
@@ -33,23 +38,17 @@ public static class Program
                 GatewayIntents.GuildMessages |
                 GatewayIntents.MessageContent
         });
+
         Client.Log += Log;
-
-        AI = new AIHandler();
-        Commands = new CommandHandler();
-        Wordle = new WordleHandler();
-
-
         Client.Ready += ClientReady;
-
-        await Client.LoginAsync(TokenType.Bot, Config.DiscordConfig.Token);
-        await Client.StartAsync();
-
         Client.MessageReceived += MessageReceived;
         Client.ButtonExecuted += HandleButtonPressAsync;
 
         if (Commands != null)
             Client.SlashCommandExecuted += Commands.HandleSlashCommand;
+
+        await Client.LoginAsync(TokenType.Bot, Config.DiscordConfig.Token);
+        await Client.StartAsync();
 
         // Block this task until the program is closed.
         await Task.Delay(-1);
@@ -79,6 +78,11 @@ public static class Program
             new SlashCommandBuilder()
                 .WithName("wordle-end")
                 .WithDescription("Ends the current Wordle game in this channel if there is one")
+                .Build(),
+
+            new SlashCommandBuilder()
+                .WithName("demon-list")
+                .WithDescription("Sends the top 15 entries on the PointerCrate demon list")
                 .Build()
         ];
 
@@ -114,6 +118,9 @@ public static class Program
         if (AI == null)
             return;
 
+        if (message.Author == Client.CurrentUser)
+            return;
+
         // Check if the message is replying to the bot
         bool isReplyToBot = false;
         if (message.Reference is not null)
@@ -141,13 +148,33 @@ public static class Program
 
     private static async Task HandleButtonPressAsync(SocketMessageComponent component)
     {
+
+
         switch (component.Data.CustomId)
         {
-            case "show_more_button":
+            case "previous_button":
+                await component.DeferAsync();
+
+                Embed previousEmbed = PointerCrate.ChannelLevels.ContainsKey(component.Channel.Id) ?
+                    await PointerCrate.GetPreviousLevelEmbed(component.Channel.Id) : await PointerCrate.CreateFirstEmbed(component.Channel.Id);
+
                 if (PointerCrate == null)
                     await component.RespondAsync("PointerCrate functionality is not enabled.");
                 else
-                    await component.RespondAsync("if i was bothered this would show more results :3");
+                    _ = Task.Run(async () => await component.Message.ModifyAsync(msg => msg.Embed = previousEmbed));
+
+                return;
+            case "next_button":
+                await component.DeferAsync();
+
+                Embed nextEmbed = PointerCrate.ChannelLevels.ContainsKey(component.Channel.Id) ?
+                    await PointerCrate.GetNextLevelEmbed(component.Channel.Id) : await PointerCrate.CreateFirstEmbed(component.Channel.Id);
+
+                if (PointerCrate == null)
+                    await component.RespondAsync("PointerCrate functionality is not enabled.");
+                else
+                    _ = Task.Run(async () => await component.Message.ModifyAsync(msg => msg.Embed = nextEmbed));
+
                 return;
         }
     }

@@ -39,10 +39,16 @@ public class CommandHandler
                 if (Program.PointerCrate == null)
                     await command.RespondAsync("PointerCrate functionality is not currently enabled. :c");
                 else
+                {
+                    ComponentBuilder buttons = new ComponentBuilder()
+                        .WithButton("< Previous", customId: "previous_button", ButtonStyle.Success)
+                        .WithButton("Next >", customId: "next_button", ButtonStyle.Success);
+
                     await command.RespondAsync(
-                        embed: PointerCrateHandler.CreateListEmbed(await Program.PointerCrate.RequestLevels(0, 10), out ComponentBuilder buttonComponentBuilder),
-                        components: buttonComponentBuilder.Build()
-                        );    
+                        embed: await Program.PointerCrate.CreateFirstEmbed(command.Channel.Id),
+                        components: buttons.Build()
+                        );
+                }
                 return;
         }
     }
