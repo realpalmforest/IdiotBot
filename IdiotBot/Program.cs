@@ -45,7 +45,9 @@ public class Program
         await Client.StartAsync();
 
         Client.MessageReceived += MessageReceived;
-        Client.SlashCommandExecuted += Commands.HandleSlashCommand;
+
+        if(Commands != null)
+            Client.SlashCommandExecuted += Commands.HandleSlashCommand;
 
         // Block this task until the program is closed.
         await Task.Delay(-1);
@@ -96,7 +98,7 @@ public class Program
         // string messageFormatted = $"{(message.Author.GlobalName is null ? message.Author.Username : message.Author.GlobalName)}:\t{message.Content}";
         // Print($"[{message.Channel.Name}]  " + messageFormatted);
 
-        if (Wordle.TryGuess(message))
+        if (Wordle != null && Wordle.TryGuess(message))
             return;
 
         // A discarded task is created due to discord throwing an exception if a handler takes too long to respond
@@ -107,6 +109,9 @@ public class Program
 
     private static async Task TryGetAIResponse(SocketMessage message)
     {
+        if (AI == null)
+            return;
+
         // Check if the message is replying to the bot
         bool isReplyToBot = false;
         if (message.Reference is not null)
