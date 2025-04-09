@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using System.Threading.Tasks;
 
 namespace IdiotBot.Handlers;
@@ -23,10 +24,25 @@ public class CommandHandler
                 await command.RespondAsync(response);
                 return;
             case "wordle":
-                await command.RespondAsync(embed: Program.Wordle.StartGame(command.User, command.Channel.Id));
+                if (Program.Wordle == null)
+                    await command.RespondAsync("Wordle is not currently enabled. :c");
+                else
+                    await command.RespondAsync(embed: Program.Wordle.StartGame(command.User, command.Channel.Id));
                 return;
             case "wordle-end":
-                await command.RespondAsync(embed: Program.Wordle.StopGame(command.Channel.Id, command.User));
+                if (Program.Wordle == null)
+                    await command.RespondAsync("Wordle is not currently enabled. :c");
+                else
+                    await command.RespondAsync(embed: Program.Wordle.StopGame(command.Channel.Id, command.User));
+                return;
+            case "demon-list":
+                if (Program.PointerCrate == null)
+                    await command.RespondAsync("PointerCrate functionality is not currently enabled. :c");
+                else
+                    await command.RespondAsync(
+                        embed: PointerCrateHandler.CreateListEmbed(await Program.PointerCrate.RequestLevels(0, 10), out ComponentBuilder buttonComponentBuilder),
+                        components: buttonComponentBuilder.Build()
+                        );    
                 return;
         }
     }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace IdiotBot;
 
-public class Program
+public static class Program
 {
     public static DiscordSocketClient Client;
 
@@ -17,6 +17,7 @@ public class Program
     public static AIHandler AI;
     public static CommandHandler Commands;
     public static WordleHandler Wordle;
+    public static PointerCrateHandler PointerCrate;
 
     public static Config Config;
     public static string ResourcesPath => Config.ResourcesConfig.ResourcesPath;
@@ -45,8 +46,9 @@ public class Program
         await Client.StartAsync();
 
         Client.MessageReceived += MessageReceived;
+        Client.ButtonExecuted += HandleButtonPressAsync;
 
-        if(Commands != null)
+        if (Commands != null)
             Client.SlashCommandExecuted += Commands.HandleSlashCommand;
 
         // Block this task until the program is closed.
@@ -137,6 +139,18 @@ public class Program
         await message.Channel.SendMessageAsync(await AI.GetResponse(formattedMessage, message.Channel.Id, author), messageReference: new MessageReference(message.Id));
     }
 
+    private static async Task HandleButtonPressAsync(SocketMessageComponent component)
+    {
+        switch (component.Data.CustomId)
+        {
+            case "show_more_button":
+                if (PointerCrate == null)
+                    await component.RespondAsync("PointerCrate functionality is not enabled.");
+                else
+                    await component.RespondAsync("if i was bothered this would show more results :3");
+                return;
+        }
+    }
 
 
     private static Task Log(LogMessage msg)
