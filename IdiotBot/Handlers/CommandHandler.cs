@@ -41,8 +41,8 @@ public class CommandHandler
                 else
                 {
                     ComponentBuilder buttons = new ComponentBuilder()
-                        .WithButton("< Previous", customId: "previous_button", ButtonStyle.Success)
-                        .WithButton("Next >", customId: "next_button", ButtonStyle.Success);
+                        .WithButton("< Previous", customId: "previous_button", ButtonStyle.Secondary)
+                        .WithButton("Next >", customId: "next_button", ButtonStyle.Secondary);
 
                     await command.RespondAsync(
                         embed: await Program.PointerCrate.CreateFirstEmbed(command.Channel.Id),
