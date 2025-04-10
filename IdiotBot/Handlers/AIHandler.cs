@@ -36,10 +36,12 @@ namespace IdiotBot.Handlers
         }
 
 
-        public async Task<string> GetResponse(string prompt, ulong chatId, string authorName)
+        public async Task<string> GetResponse(string prompt, ulong chatId)
         {
+            Program.Print(prompt);
+
             StringBuilder response = new StringBuilder();
-            await foreach (var stream in GetChat(chatId).SendAsync($"[{authorName}]: {prompt}"))
+            await foreach (var stream in GetChat(chatId).SendAsync(prompt))
                 response.Append(stream);
 
             return response.ToString();

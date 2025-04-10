@@ -136,14 +136,19 @@ public static class Program
 
     private static async Task RespondWithAi(SocketMessage message)
     {
-        // Replace all mentioned user tags with their names
         string formattedMessage = message.Content;
-        foreach (var user in message.MentionedUsers)
-            formattedMessage = formattedMessage.Replace(user.Mention, user.GlobalName is null ? user.Username : user.GlobalName);
 
+        // Prepend the prompt with the name of the author in square brackets
         string author = message.Author.GlobalName == null ? message.Author.Username : message.Author.GlobalName;
+        formattedMessage = $"[{author}]: " + formattedMessage.ToString();
 
-        await message.Channel.SendMessageAsync(await AI.GetResponse(formattedMessage, message.Channel.Id, author), messageReference: new MessageReference(message.Id));
+        // Replace all mentioned user tags with their names
+        foreach (var user in message.MentionedUsers)
+            formattedMessage = formattedMessage.Replace(user.Mention, $"[{(user.GlobalName is null ? user.Username : user.GlobalName)}]");
+
+
+
+        await message.Channel.SendMessageAsync(await AI.GetResponse(formattedMessage, message.Channel.Id), messageReference: new MessageReference(message.Id));
     }
 
     private static async Task HandleButtonPressAsync(SocketMessageComponent component)
